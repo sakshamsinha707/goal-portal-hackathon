@@ -2,6 +2,18 @@
 
 AtomQuest hackathon MVP for performance goal setting, manager approval, quarterly check-ins, shared department goals, and admin reporting.
 
+## Live Demo
+
+Production Deployment:  
+https://goal-portal-hackathon.vercel.app
+
+---
+
+## Source Code
+
+GitHub Repository:  
+https://github.com/sakshamsinha707/goal-portal-hackathon
+
 ## Stack
 
 - Next.js 16 (App Router)
