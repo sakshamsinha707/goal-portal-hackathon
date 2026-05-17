@@ -9,34 +9,53 @@ const publicPaths = ["/login"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p));
-  const isApiAuth = pathname.startsWith("/api/auth");
-  const isStatic =
+
+  // Always allow NextAuth routes
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
+  // Always allow static assets
+  if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
-    pathname.endsWith(".ico");
-
-  if (isApiAuth || isStatic) return NextResponse.next();
-
-  if (!req.auth?.user) {
-    if (isPublic) return NextResponse.next();
-    const login = new URL("/login", req.url);
-    login.searchParams.set("callbackUrl", pathname);
-    return NextResponse.redirect(login);
+    pathname.endsWith(".ico") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
   }
 
+  // Always allow login page
   if (pathname === "/login") {
-    return NextResponse.redirect(
-      new URL(dashboardPath(req.auth.user.role), req.url)
-    );
+    if (req.auth?.user) {
+      return NextResponse.redirect(
+        new URL(dashboardPath(req.auth.user.role), req.url)
+      );
+    }
+
+    return NextResponse.next();
   }
 
+  // Redirect unauthenticated users
+  if (!req.auth?.user) {
+    const loginUrl = new URL("/login", req.url);
+
+    loginUrl.searchParams.set(
+      "callbackUrl",
+      pathname + req.nextUrl.search
+    );
+
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Root redirect
   if (pathname === "/") {
     return NextResponse.redirect(
       new URL(dashboardPath(req.auth.user.role), req.url)
     );
   }
 
+  // Admin protection
   if (
     (pathname.startsWith("/admin") ||
       pathname.startsWith("/reports") ||
@@ -46,7 +65,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/employee", req.url));
   }
 
-  if (pathname.startsWith("/manager") && req.auth.user.role === "EMPLOYEE") {
+  // Manager protection
+  if (
+    pathname.startsWith("/manager") &&
+    req.auth.user.role === "EMPLOYEE"
+  ) {
     return NextResponse.redirect(new URL("/employee", req.url));
   }
 
@@ -54,5 +77,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
