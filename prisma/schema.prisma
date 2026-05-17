@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  ADMIN
+}
+
+enum GoalSheetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum UomType {
+  NUMERIC_MIN
+  NUMERIC_MAX
+  PERCENT_MIN
+  PERCENT_MAX
+  TIMELINE
+  ZERO_BASED
+}
+
+enum GoalProgressStatus {
+  NOT_STARTED
+  ON_TRACK
+  COMPLETED
+}
+
+enum Quarter {
+  Q1
+  Q2
+  Q3
+  Q4
+}
+
+enum CyclePhase {
+  GOAL_SETTING
+  Q1_CHECKIN
+  Q2_CHECKIN
+  Q3_CHECKIN
+  Q4_CHECKIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Department {
+  id           String               @id @default(cuid())
+  name         String               @unique
+  users        User[]
+  sharedGoals  SharedGoalTemplate[]
+  createdAt    DateTime             @default(now())
+}
+
+model User {
+  id             String                  @id @default(cuid())
+  email          String                  @unique
+  passwordHash   String
+  name           String
+  role           Role
+  departmentId   String?
+  department     Department?             @relation(fields: [departmentId], references: [id])
+  managerId      String?
+  manager        User?                   @relation("Reports", fields: [managerId], references: [id])
+  reports        User[]                  @relation("Reports")
+  goalSheets     GoalSheet[]
+  auditLogs      AuditLog[]
+  notifications  Notification[]
+  approvals      GoalApproval[]          @relation("ManagerApprovals")
+  checkInNotes   ManagerCheckInComment[]
+  sharedCreated  SharedGoalTemplate[]    @relation("SharedGoalCreator")
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+}
+
+model ThrustArea {
+  id            String               @id @default(cuid())
+  name          String               @unique
+  description   String?
+  goals         Goal[]
+  sharedGoals   SharedGoalTemplate[]
+}
+
+model PerformanceCycle {
+  id          String       @id @default(cuid())
+  year        Int
+  label       String
+  phase       CyclePhase
+  windowStart DateTime
+  windowEnd   DateTime
+  isActive    Boolean      @default(false)
+  goalSheets  GoalSheet[]
+  createdAt   DateTime     @default(now())
+
+  @@unique([year, phase])
+}
+
+model GoalSheet {
+  id          String          @id @default(cuid())
+  employeeId  String
+  employee    User            @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycleId     String
+  cycle       PerformanceCycle @relation(fields: [cycleId], references: [id])
+  status      GoalSheetStatus @default(DRAFT)
+  locked      Boolean         @default(false)
+  submittedAt DateTime?
+  approvedAt  DateTime?
+  rejectionNote String?
+  goals       Goal[]
+  approval    GoalApproval?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@unique([employeeId, cycleId])
+}
+
+model Goal {
+  id               String             @id @default(cuid())
+  goalSheetId      String
+  goalSheet        GoalSheet          @relation(fields: [goalSheetId], references: [id], onDelete: Cascade)
+  thrustAreaId     String
+  thrustArea       ThrustArea         @relation(fields: [thrustAreaId], references: [id])
+  title            String
+  description      String?
+  uomType          UomType
+  target           Float
+  weightage        Int
+  isShared         Boolean            @default(false)
+  sharedTemplateId String?
+  sharedTemplate   SharedGoalTemplate? @relation(fields: [sharedTemplateId], references: [id])
+  isPrimaryOwner   Boolean            @default(true)
+  syncGroupId      String?
+  sortOrder        Int                @default(0)
+  checkIns         QuarterlyCheckIn[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+}
+
+model SharedGoalTemplate {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  thrustAreaId String
+  thrustArea   ThrustArea @relation(fields: [thrustAreaId], references: [id])
+  title        String
+  description  String?
+  uomType      UomType
+  target       Float
+  syncGroupId  String
+  createdById  String
+  createdBy    User       @relation("SharedGoalCreator", fields: [createdById], references: [id])
+  goals        Goal[]
+  createdAt    DateTime   @default(now())
+}
+
+model GoalApproval {
+  id           String         @id @default(cuid())
+  goalSheetId  String         @unique
+  goalSheet    GoalSheet      @relation(fields: [goalSheetId], references: [id], onDelete: Cascade)
+  managerId    String
+  manager      User           @relation("ManagerApprovals", fields: [managerId], references: [id])
+  status       ApprovalStatus @default(PENDING)
+  managerNotes String?
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+}
+
+model QuarterlyCheckIn {
+  id             String                  @id @default(cuid())
+  goalId         String
+  goal           Goal                    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  quarter        Quarter
+  plannedValue   Float?
+  actualValue    Float?
+  status         GoalProgressStatus      @default(NOT_STARTED)
+  progressScore  Float?
+  employeeNotes  String?
+  timelineDate   DateTime?
+  updatedAt      DateTime                @updatedAt
+  managerComment ManagerCheckInComment?
+
+  @@unique([goalId, quarter])
+}
+
+model ManagerCheckInComment {
+  id        String           @id @default(cuid())
+  checkInId String           @unique
+  checkIn   QuarterlyCheckIn @relation(fields: [checkInId], references: [id], onDelete: Cascade)
+  managerId String
+  manager   User             @relation(fields: [managerId], references: [id])
+  comment   String
+  createdAt DateTime         @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  entityType String
+  entityId   String
+  action     String
+  summary    String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  href      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+}
+
+model Escalation {
+  id        String   @id @default(cuid())
+  type      String
+  userId    String
+  message   String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
