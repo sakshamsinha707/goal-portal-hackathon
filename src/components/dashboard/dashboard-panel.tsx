@@ -10,6 +10,7 @@ export function DashboardPanel({
   children,
   className,
   compact,
+  meta,
 }: {
   title: string;
   subtitle?: string;
@@ -18,11 +19,12 @@ export function DashboardPanel({
   children: React.ReactNode;
   className?: string;
   compact?: boolean;
+  meta?: string | number;
 }) {
   return (
     <Card
       className={cn(
-        "transition-shadow hover:shadow-md",
+        "transition-all hover:border-slate-300 hover:shadow-md",
         className
       )}
     >
@@ -33,7 +35,14 @@ export function DashboardPanel({
         )}
       >
         <div className="min-w-0 space-y-0.5">
-          <CardTitle className={compact ? "text-sm" : undefined}>{title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className={compact ? "text-sm" : undefined}>{title}</CardTitle>
+            {meta !== undefined ? (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600">
+                {meta}
+              </span>
+            ) : null}
+          </div>
           {subtitle ? (
             <p className="text-xs text-slate-500">{subtitle}</p>
           ) : null}
@@ -41,7 +50,7 @@ export function DashboardPanel({
         {actionLabel && actionHref ? (
           <Link
             href={actionHref}
-            className="shrink-0 text-xs font-medium text-slate-600 hover:text-slate-900"
+            className="shrink-0 rounded px-1.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           >
             {actionLabel}
           </Link>

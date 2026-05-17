@@ -15,6 +15,8 @@ import { prisma } from "../src/lib/prisma";
 
 async function main() {
   const passwordHash = await hash(DEMO_PASSWORD, 10);
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 60 * 60 * 1000);
+  const daysAgo = (d: number) => new Date(Date.now() - d * 24 * 60 * 60 * 1000);
 
   await prisma.auditLog.deleteMany();
   await prisma.notification.deleteMany();
@@ -130,7 +132,7 @@ async function main() {
       prisma.performanceCycle.create({
         data: {
           year: 2026,
-          label: `FY 2026 — ${c.label}`,
+          label: `FY 2026 - ${c.label}`,
           phase: c.phase,
           windowStart: c.windowStart,
           windowEnd: c.windowEnd,
@@ -146,7 +148,7 @@ async function main() {
       employeeId: employees[0]!.id,
       cycleId: goalCycle.id,
       status: GoalSheetStatus.SUBMITTED,
-      submittedAt: new Date(),
+      submittedAt: hoursAgo(3),
       goals: {
         create: [
           {
@@ -193,8 +195,8 @@ async function main() {
       employeeId: employees[1]!.id,
       cycleId: goalCycle.id,
       status: GoalSheetStatus.APPROVED,
-      submittedAt: new Date(),
-      approvedAt: new Date(),
+      submittedAt: daysAgo(4),
+      approvedAt: daysAgo(2),
       locked: true,
       goals: {
         create: [
@@ -225,7 +227,8 @@ async function main() {
       goalSheetId: sheet2.id,
       managerId: mgrOps.id,
       status: ApprovalStatus.APPROVED,
-      reviewedAt: new Date(),
+      reviewedAt: daysAgo(2),
+      managerNotes: "Approved after tightening partner onboarding milestone.",
     },
   });
 
@@ -244,6 +247,48 @@ async function main() {
     });
   }
 
+  const sheetDev = await prisma.goalSheet.create({
+    data: {
+      employeeId: employees[4]!.id,
+      cycleId: goalCycle.id,
+      status: GoalSheetStatus.APPROVED,
+      submittedAt: daysAgo(5),
+      approvedAt: daysAgo(3),
+      locked: true,
+      goals: {
+        create: [
+          {
+            title: "Stabilize release handoff checklist",
+            description: "Reduce missed deployment prerequisites",
+            thrustAreaId: opsEx.id,
+            uomType: UomType.PERCENT_MIN,
+            target: 95,
+            weightage: 45,
+            sortOrder: 0,
+          },
+          {
+            title: "Improve incident response notes",
+            thrustAreaId: thrustAreas[4]!.id,
+            uomType: UomType.TIMELINE,
+            target: 1,
+            weightage: 55,
+            sortOrder: 1,
+          },
+        ],
+      },
+    },
+  });
+
+  await prisma.goalApproval.create({
+    data: {
+      goalSheetId: sheetDev.id,
+      managerId: mgrOps.id,
+      status: ApprovalStatus.APPROVED,
+      reviewedAt: daysAgo(3),
+      managerNotes: "Approved with Q1 check-in expected before the review close.",
+    },
+  });
+
   await prisma.sharedGoalTemplate.create({
     data: {
       departmentId: ops.id,
@@ -256,8 +301,6 @@ async function main() {
       createdById: admin.id,
     },
   });
-
-  const hoursAgo = (h: number) => new Date(Date.now() - h * 60 * 60 * 1000);
 
   await prisma.notification.createMany({
     data: [
@@ -286,7 +329,7 @@ async function main() {
       {
         userId: employees[1]!.id,
         title: "Quarterly review reminder",
-        message: "Q1 check-in window is open — log planned vs actual.",
+        message: "Q1 check-in window is open - log planned vs actual.",
         href: "/check-ins",
         createdAt: hoursAgo(5),
       },
@@ -296,6 +339,21 @@ async function main() {
         message: "Dev Chen has not logged Q1 progress yet.",
         href: "/manager/check-ins",
         createdAt: hoursAgo(8),
+      },
+      {
+        userId: employees[4]!.id,
+        title: "Q1 check-in pending",
+        message: "Your approved goals need a Q1 progress update.",
+        href: "/check-ins",
+        createdAt: hoursAgo(9),
+      },
+      {
+        userId: mgrOps.id,
+        title: "Approval completed",
+        message: "Neha Kapoor's goal sheet was approved and locked.",
+        href: "/manager/approvals",
+        read: true,
+        createdAt: daysAgo(2),
       },
       {
         userId: admin.id,
@@ -334,6 +392,22 @@ async function main() {
         createdAt: hoursAgo(6),
       },
       {
+        userId: mgrOps.id,
+        entityType: "GoalSheet",
+        entityId: sheetDev.id,
+        action: "APPROVE",
+        summary: "Rahul Mehta approved Dev Chen goal sheet",
+        createdAt: daysAgo(3),
+      },
+      {
+        userId: employees[4]!.id,
+        entityType: "QuarterlyCheckIn",
+        entityId: sheetDev.id,
+        action: "REMINDER",
+        summary: "Q1 check-in reminder sent to Dev Chen",
+        createdAt: hoursAgo(9),
+      },
+      {
         userId: admin.id,
         entityType: "System",
         entityId: "seed",
@@ -349,7 +423,7 @@ async function main() {
       {
         type: "CHECKIN_OVERDUE",
         userId: employees[4]!.id,
-        message: "Dev Chen — Q1 check-in not completed within window",
+        message: "Dev Chen - Q1 check-in not completed within window",
         createdAt: hoursAgo(12),
       },
     ],

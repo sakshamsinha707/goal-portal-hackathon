@@ -30,20 +30,43 @@ export default async function EmployeeDashboardPage() {
         title="Employee dashboard"
         subtitle={
           data.cycle
-            ? `${data.cycle.label} · ${PHASE_LABELS[data.cycle.phase]}`
+            ? `${data.cycle.label} - ${PHASE_LABELS[data.cycle.phase]}`
             : "Performance goals & check-ins"
         }
       />
       <main className="flex-1 space-y-4 p-4 md:p-6">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Goal sheet" value={statusLabel.replace("_", " ")} icon={Target} />
+          <StatCard
+            label="Goal sheet"
+            value={statusLabel.replace("_", " ")}
+            hint={
+              data.sheet?.submittedAt
+                ? `Submitted ${formatDateTime(data.sheet.submittedAt)}`
+                : "Not submitted"
+            }
+            icon={Target}
+            tone={
+              data.sheet?.status === "APPROVED"
+                ? "success"
+                : data.sheet?.status === "SUBMITTED"
+                  ? "warning"
+                  : "default"
+            }
+          />
           <StatCard
             label="Weighted progress"
             value={`${data.overallProgress}%`}
             hint={data.sheet?.status === "APPROVED" ? "From latest check-ins" : "After approval"}
             icon={ClipboardCheck}
+            tone="info"
           />
-          <StatCard label="Unread alerts" value={data.unreadCount} icon={Bell} />
+          <StatCard
+            label="Unread alerts"
+            value={data.unreadCount}
+            hint={data.unreadCount ? "Needs review" : "Inbox clear"}
+            icon={Bell}
+            tone={data.unreadCount ? "warning" : "success"}
+          />
           <StatCard
             label="Goals defined"
             value={data.sheet?.goals.length ?? 0}
@@ -76,6 +99,7 @@ export default async function EmployeeDashboardPage() {
             <DashboardPanel
               title="Your actions"
               subtitle="Items that need attention this cycle"
+              meta={data.pendingActions.length}
               compact
             >
               <PendingActions items={data.pendingActions} />
@@ -85,7 +109,7 @@ export default async function EmployeeDashboardPage() {
               title="Goal progress"
               subtitle={
                 data.sheet?.status === "APPROVED"
-                  ? "Tracking only — not a performance rating"
+                  ? "Tracking only - not a performance rating"
                   : "Available after manager approval"
               }
               actionLabel={data.sheet ? "Open sheet" : undefined}
@@ -95,16 +119,22 @@ export default async function EmployeeDashboardPage() {
               {data.sheet?.status === "APPROVED" ? (
                 <GoalProgressBars goals={data.goalProgress} />
               ) : (
-                <p className="text-sm text-slate-500">
+                <p className="rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-3 py-4 text-sm text-slate-500">
                   Submit and get your goal sheet approved to unlock quarterly tracking.
                 </p>
               )}
             </DashboardPanel>
 
-            <DashboardPanel title="Activity" subtitle="Your recent updates" compact>
+            <DashboardPanel
+              title="Activity"
+              subtitle="Your recent updates"
+              meta={data.activity.length}
+              compact
+            >
               <ActivityFeed
                 items={data.activity}
                 emptyDescription="Submit goals or log a check-in to see activity here."
+                dense
               />
             </DashboardPanel>
           </div>
@@ -138,6 +168,7 @@ export default async function EmployeeDashboardPage() {
               title="Notifications"
               actionLabel="View all"
               actionHref="/notifications"
+              meta={data.notifications.filter((n) => !n.read).length}
               compact
             >
               <NotificationStrip items={data.notifications} />

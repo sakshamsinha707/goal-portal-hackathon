@@ -29,16 +29,18 @@ export default async function AdminDashboardPage() {
       />
       <main className="flex-1 space-y-4 p-4 md:p-6">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Users" value={data.userCount} icon={Users} />
+          <StatCard label="Users" value={data.userCount} hint="Provisioned accounts" icon={Users} />
           <StatCard
             label="Pending approvals"
             value={data.pendingApprovals}
             hint="Across all managers"
             icon={ClipboardCheck}
+            tone={data.pendingApprovals ? "warning" : "success"}
           />
           <StatCard
             label="Departments"
             value={data.departments.length}
+            hint="With active users"
             icon={Building2}
           />
           <StatCard
@@ -46,6 +48,7 @@ export default async function AdminDashboardPage() {
             value={data.escalations}
             hint="Rule-based follow-ups"
             icon={Shield}
+            tone={data.escalations ? "danger" : "success"}
           />
         </div>
 
@@ -72,17 +75,19 @@ export default async function AdminDashboardPage() {
               subtitle="Audit trail highlights"
               actionLabel="Full audit log"
               actionHref="/audit"
+              meta={data.activity.length}
               compact
             >
               <ActivityFeed
                 items={data.activity}
                 emptyDescription="System and user actions are logged here."
+                dense
               />
             </DashboardPanel>
           </div>
 
           <div className="space-y-4">
-            <DashboardPanel title="Departments" compact>
+            <DashboardPanel title="Departments" meta={data.departments.length} compact>
               <ul className="space-y-2 text-sm">
                 {data.departments.map((d) => (
                   <li
@@ -91,7 +96,7 @@ export default async function AdminDashboardPage() {
                   >
                     <span className="font-medium text-slate-800">{d.name}</span>
                     <span className="text-xs text-slate-500">
-                      {d.users} people · {d.sharedGoals} shared KPIs
+                      {d.users} people - {d.sharedGoals} shared KPIs
                     </span>
                   </li>
                 ))}
@@ -101,6 +106,7 @@ export default async function AdminDashboardPage() {
             <DashboardPanel
               title="Recent approvals"
               subtitle="Manager decisions"
+              meta={data.recentApprovals.length}
               compact
             >
               <ApprovalHistoryList
@@ -118,17 +124,18 @@ export default async function AdminDashboardPage() {
               title="Audit log"
               actionLabel="View all"
               actionHref="/audit"
+              meta={data.recentAudit.length}
               compact
             >
               <ul className="divide-y divide-slate-100 text-sm">
                 {data.recentAudit.map((log) => (
                   <li
                     key={log.id}
-                    className="flex flex-col gap-0.5 py-2 transition-colors hover:bg-slate-50 -mx-2 px-2 rounded-md"
+                    className="-mx-2 flex flex-col gap-0.5 rounded-md px-2 py-2 transition-colors hover:bg-slate-50"
                   >
                     <span className="text-slate-800">{log.summary}</span>
                     <span className="text-xs text-slate-500">
-                      {log.user.name} · {formatRelativeTime(log.createdAt)}
+                      {log.user.name} - {formatRelativeTime(log.createdAt)}
                     </span>
                   </li>
                 ))}
@@ -139,13 +146,13 @@ export default async function AdminDashboardPage() {
             </DashboardPanel>
 
             <DashboardPanel title="Governance" compact>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="info">{data.approvedSheets} approved sheets</Badge>
                 <Link
                   href="/reports"
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                  className="rounded px-1.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 >
-                  Export reports →
+                  Export reports
                 </Link>
               </div>
             </DashboardPanel>

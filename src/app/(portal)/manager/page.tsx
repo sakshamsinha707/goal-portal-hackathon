@@ -25,7 +25,7 @@ export default async function ManagerDashboardPage() {
       />
       <main className="flex-1 space-y-4 p-4 md:p-6">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Direct reports" value={data.teamCount} icon={Users} />
+          <StatCard label="Direct reports" value={data.teamCount} hint="Active team members" icon={Users} />
           <StatCard
             label="Pending approvals"
             value={data.pendingApprovals}
@@ -35,18 +35,26 @@ export default async function ManagerDashboardPage() {
                 : "Queue clear"
             }
             icon={ClipboardCheck}
+            tone={data.pendingApprovals ? "warning" : "success"}
           />
           <StatCard
             label="Check-in gaps"
             value={data.overdueCheckIns.length}
             hint={
               data.activeQuarter
-                ? `${QUARTER_LABELS[data.activeQuarter]}`
+                ? `${QUARTER_LABELS[data.activeQuarter]} follow-up`
                 : "No active quarter"
             }
             icon={AlertTriangle}
+            tone={data.overdueCheckIns.length ? "danger" : "success"}
           />
-          <StatCard label="Unread alerts" value={data.unreadCount} icon={Clock} />
+          <StatCard
+            label="Unread alerts"
+            value={data.unreadCount}
+            hint={data.unreadCount ? "Open items" : "Inbox clear"}
+            icon={Clock}
+            tone={data.unreadCount ? "warning" : "success"}
+          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -56,6 +64,7 @@ export default async function ManagerDashboardPage() {
               subtitle={`${data.pendingSheets.length} awaiting your review`}
               actionLabel="Approval queue"
               actionHref="/manager/approvals"
+              meta={data.pendingSheets.length}
               compact
             >
               {data.pendingSheets.length === 0 ? (
@@ -67,7 +76,7 @@ export default async function ManagerDashboardPage() {
                   {data.pendingSheets.map((s) => (
                     <li
                       key={s.id}
-                      className="flex items-center justify-between gap-3 py-2.5 transition-colors hover:bg-slate-50 -mx-2 px-2 rounded-md"
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2.5 transition-colors hover:bg-slate-50"
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-900">
@@ -78,7 +87,7 @@ export default async function ManagerDashboardPage() {
                           {s.submittedAt
                             ? formatRelativeTime(s.submittedAt)
                             : "recently"}
-                          {" · "}
+                          {" - "}
                           {s.cycle.label}
                         </p>
                       </div>
@@ -96,6 +105,7 @@ export default async function ManagerDashboardPage() {
               subtitle="Last completed reviews"
               actionLabel="All approvals"
               actionHref="/manager/approvals"
+              meta={data.recentApprovals.length}
               compact
             >
               <ApprovalHistoryList
@@ -104,11 +114,12 @@ export default async function ManagerDashboardPage() {
               />
             </DashboardPanel>
 
-            <DashboardPanel title="Team activity" compact>
+            <DashboardPanel title="Team activity" meta={data.activity.length} compact>
               <ActivityFeed
                 items={data.activity}
                 emptyTitle="No team activity yet"
                 emptyDescription="Check-ins and goal updates from your reports appear here."
+                dense
               />
             </DashboardPanel>
           </div>
@@ -119,6 +130,7 @@ export default async function ManagerDashboardPage() {
               subtitle="Approved goals missing this quarter"
               actionLabel="Review check-ins"
               actionHref="/manager/check-ins"
+              meta={data.overdueCheckIns.length}
               compact
             >
               {data.overdueCheckIns.length === 0 ? (
@@ -153,6 +165,7 @@ export default async function ManagerDashboardPage() {
               title="Notifications"
               actionLabel="View all"
               actionHref="/notifications"
+              meta={data.notifications.filter((n) => !n.read).length}
               compact
             >
               <NotificationStrip items={data.notifications} />

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { Check, ClipboardCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,8 +32,8 @@ export function ApprovalPanel({
 
   if (status !== "SUBMITTED") {
     return (
-      <p className="text-sm text-slate-500">
-        This sheet is {status.toLowerCase()} — no action required.
+      <p className="rounded-md border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-500">
+        This sheet is {status.toLowerCase()} - no action required.
       </p>
     );
   }
@@ -67,18 +67,34 @@ export function ApprovalPanel({
   }
 
   return (
-    <div className="space-y-6">
-      <Badge variant={totalWeight === 100 ? "success" : "warning"}>
-        Total weight: {totalWeight}%
-      </Badge>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="rounded-md bg-slate-100 p-2 text-slate-600">
+            <ClipboardCheck className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Review package</p>
+            <p className="text-xs text-slate-500">
+              {goals.length} goals submitted by {employeeName}
+            </p>
+          </div>
+        </div>
+        <Badge variant={totalWeight === 100 ? "success" : "warning"}>
+          Total weight: {totalWeight}%
+        </Badge>
+      </div>
 
       {goals.map((goal, index) => (
         <Card key={index}>
           <CardHeader>
             <CardTitle className="text-sm">Goal {index + 1}</CardTitle>
+            {goal.description ? (
+              <p className="text-xs text-slate-500">{goal.description}</p>
+            ) : null}
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2 space-y-1">
+            <div className="space-y-1 sm:col-span-2">
               <Label>Title</Label>
               <Input
                 value={goal.title}
@@ -110,8 +126,8 @@ export function ApprovalPanel({
       ))}
 
       {showReject ? (
-        <div className="space-y-2 rounded-md border border-slate-200 p-4">
-          <Label>Rejection reason</Label>
+        <div className="space-y-2 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+          <Label>Return reason</Label>
           <Textarea
             value={rejectNote}
             onChange={(e) => setRejectNote(e.target.value)}
@@ -127,7 +143,7 @@ export function ApprovalPanel({
           </div>
         </div>
       ) : (
-        <div className="flex gap-2">
+        <div className="sticky bottom-4 flex flex-wrap gap-2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-sm backdrop-blur">
           <Button disabled={pending} onClick={handleApprove}>
             <Check className="h-4 w-4" />
             Approve goals
